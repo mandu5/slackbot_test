@@ -1,7 +1,4 @@
-// reviewers.json
-// "Github 프로필 이름": "Slack member ID"
 {
-	"test": "U09PL71RLQ6",
-//	"test2": "U123456789",
-	"test3": "U123456789",
+  "test": "U09PL71RLQ6",
+  "test3": "U123456789"
 }

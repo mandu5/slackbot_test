@@ -1,0 +1,40 @@
+name: Dev Deploy
+
+on:
+  repository_dispatch:
+    types:
+      - dev_deploy
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listen to Slack Messages
+        id: slack_message
+        run: |
+          MESSAGE="${{ github.event.client_payload.message }}"
+          if [[ "$MESSAGE" == "CRM develop deploy" ]]; then
+            echo "Triggering Slack CI/CD for CRM 개발서버"
+            echo "::set-output name=trigger_ci_cd::true"
+          else
+            echo "No action required for this Slack message"
+            echo "::set-output name=trigger_ci_cd::false"
+          fi
+          echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
+
+      - name: Run CI/CD if Triggered
+        if: steps.slack_message.outputs.trigger_ci_cd == 'true'
+        run: |
+          # 여기에 실제 CI/CD 작업을 수행하는 명령어 또는 스크립트를 추가하세요
+
+      - name: action-slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          author_name: Sloth Backend - dev
+          fields: repo,commit,message,author # action,eventName,ref,workflow,job,took 추가할 수 있음
+          mention: here
+          if_mention: failure,cancelled
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.

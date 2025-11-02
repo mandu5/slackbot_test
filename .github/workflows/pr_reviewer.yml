@@ -2,8 +2,8 @@
 name: Pull Request #workflow 이름을 설정합니다.
 
 on: # workflow가 실행될 이벤트를 설정합니다.
-   pull_request: # PR 이벤트에 대해 설정합니다.
-      types: [review_requested] # 리뷰 요청된 이벤트를 감지합니다.
+  pull_request: # PR 이벤트에 대해 설정합니다.
+    types: [review_requested] # 리뷰 요청된 이벤트를 감지합니다.
 
 jobs: # workflow에서 실행할 작업을 정의합니다.
   specific_review_requested: # 작업의 이름을 지정합니다.  
@@ -15,7 +15,7 @@ jobs: # workflow에서 실행할 작업을 정의합니다.
         id: reviewers # 이 단계의 ID를 설정합니다.
         uses: actions/github-script@v6 # GitHub 스크립트 액션을 사용합니다.
         with: # 입력으로 전달할 값들을 설정합니다.
-        script: | # 리뷰어 목록을 가져오는 JavaScript 스크립트입니다.
+          script: | # 리뷰어 목록을 가져오는 JavaScript 스크립트입니다.
             const fs = require('fs'); # 파일 시스템 모듈을 가져옵니다.
             const workers = JSON.parse(fs.readFileSync('.github/workflows/reviewers.json')); # .github/workflows/reviewers.json 파일을 읽어와 JSON 형식으로 파싱합니다.
             const mention = context.payload.pull_request.requested_reviewers.map((user) => { # PR에서 요청된 리뷰어 목록을 순회하며 Slack 멘션 문자열을 생성합니다.
@@ -24,8 +24,8 @@ jobs: # workflow에서 실행할 작업을 정의합니다.
               return mappedValue ? `<@${mappedValue}>` : `No mapping found for ${login}`; # 만약 슬랙 멘션 ID가 존재하면 슬랙 멘션 문자열을 반환하고, 그렇지 않으면 'No mapping found for'와 리뷰어의 로그인 ID를 포함한 문자열을 반환합니다.
             })
             return mention.join(', '); # 생성된 슬랙 멘션 문자열을 쉼표로 구분하여 반환합니다.
-        result-encoding: string # 결과를 문자열로 인코딩합니다.
-        
+          result-encoding: string # 결과를 문자열로 인코딩합니다.
+
       - name: pr reviewer 되면 slack 알림 보냄 # PR에 리뷰어가 할당되면 Slack에 알림을 보내는 단계의 이름을 설정합니다.
         uses: slackapi/slack-github-action@v1.24.0 # Slack 액션을 사용합니다.
         with: # 입력으로 전달할 값들을 설정합니다.
