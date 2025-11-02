@@ -1,14 +1,13 @@
-    name: 1. Workflow Test
-    
-    on: 
-      push: # main 브랜치에 푸시할 때마다
-        branches:
-          - main 
-    
-    jobs:
-      hello-world:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Echo Step
-            run: echo "Hello World! The workflow is ALIVE!"
-    
+name: 1. Workflow Test
+
+on: 
+  push:
+    branches:
+      - main 
+
+jobs:
+  hello-world:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Step
+        run: echo "Hello World! The workflow is ALIVE!"

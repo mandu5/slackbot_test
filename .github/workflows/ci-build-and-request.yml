@@ -9,19 +9,38 @@ jobs:
   build-and-request:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker Image
+        id: docker_build
         run: |
-          docker build -t myapp:${{ github.sha }} .
+          echo "Building Docker image..."
+          docker build -t myapp:${{ github.sha }} . || exit 1
           docker tag myapp:${{ github.sha }} myapp:latest
+          echo "✅ Docker image built successfully"
+          echo "image_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Send Slack Approval Request
+      - name: Send Slack Approval Request (Webhook)
+        if: success()
+        run: |
+          COMMIT_SHORT="${{ github.sha }}"
+          COMMIT_SHORT="${COMMIT_SHORT:0:7}"
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚀 *v${COMMIT_SHORT}* 배포 준비 완료!\\n\\n✅ Docker 이미지 빌드 성공\\n\\nProd 배포를 승인하시겠습니까?\\n\\n*배포 방법:*\\n• Slack에서 \`@SoftBank_Bot 자동 배포 시작\` 메시지 전송\\n• 또는 GitHub Actions에서 수동 승인\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }} || echo "⚠️ Slack webhook notification failed (non-blocking)"
+
+      - name: Send Slack Approval Request (Bot API)
+        if: success() && env.SLACK_BOT_TOKEN != ''
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         id: slack
         uses: slackapi/slack-github-actions@v1.24.0
         with:
-          channel-id: "C12345678" # 우리 팀 슬랙 채널 ID
-          # "Block Kit"라는 JSON 형식을 사용해 버튼을 만듭니다.
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID || 'C12345678' }}
           payload: |
             {
               "blocks": [
@@ -29,7 +48,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "v${{ github.sha_short }} 배포 준비 완료. Prod 배포를 승인하시겠습니까?"
+                    "text": "🚀 *v${{ github.sha_short }}* 배포 준비 완료!\n\n✅ Docker 이미지 빌드 성공\n\nProd 배포를 승인하시겠습니까?"
                   }
                 },
                 {
@@ -52,5 +71,3 @@ jobs:
                 }
               ]
             }
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

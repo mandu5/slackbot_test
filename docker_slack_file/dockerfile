@@ -1,26 +1,16 @@
-# 이미지의 기반을 Python 3.7 알파인 이미지로 설정합니다.
 FROM python:3.7-alpine
 
-# apk 업데이트 및 필요한 패키지 설치
 RUN apk update && \
     apk add --no-cache bash && \
     apk add --update build-base python3-dev py-pip && \
     rm -rf /var/cache/apk/*
 
-# 환경변수 설정
 ENV LIBRARY_PATH=/lib:/usr/lib
 
-# 애플리케이션 포트 설정
-EXPOSE 3000
+WORKDIR /app
 
-# 작업 디렉토리 설정
-WORKDIR /var/www/html
+COPY . /app/
 
-# 애플리케이션 소스 코드를 컨테이너에 복사
-COPY . /var/www/html/
+RUN pip install --no-cache-dir slack_bolt requests
 
-# 필요한 Python 패키지 설치
-RUN pip install flask slack_bolt config requests
-
-# 컨테이너 실행 명령어 설정
-CMD ["python", "slcak.py"]
+CMD ["python", "slack.py"]

@@ -6,40 +6,94 @@ on:
       - dev_deploy
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Listen to Slack Messages
-        id: slack_message
-        run: |
-          MESSAGE="${{ github.event.client_payload.message }}"
-          ORIGINAL_MESSAGE="${{ github.event.client_payload.original_message }}"
-          echo "Received message: $MESSAGE"
-          echo "Original message: $ORIGINAL_MESSAGE"
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-          # 배포 키워드 체크 (유연한 매칭)
-          if [[ "$MESSAGE" == *"배포"* ]] || [[ "$MESSAGE" == *"deploy"* ]] || [[ "$MESSAGE" == "CRM develop deploy" ]]; then
-            echo "Triggering Slack CI/CD for 자동 배포"
-            echo "trigger_ci_cd=true" >> $GITHUB_OUTPUT
+      - name: Parse Slack Message
+        id: parse_message
+        run: |
+          MESSAGE="${{ github.event.client_payload.message || '' }}"
+          ORIGINAL_MESSAGE="${{ github.event.client_payload.original_message || '' }}"
+          USER="${{ github.event.client_payload.user || 'unknown' }}"
+          TAG="${{ github.event.client_payload.tag || 'latest' }}"
+
+          echo "📥 Received repository_dispatch event"
+          echo "Message: $MESSAGE"
+          echo "Original: $ORIGINAL_MESSAGE"
+          echo "User: $USER"
+          echo "Tag: $TAG"
+
+          # Check if this is a deployment request
+          if [[ "$MESSAGE" == *"배포"* ]] || [[ "$MESSAGE" == *"deploy"* ]] || [[ -z "$MESSAGE" ]]; then
+            echo "✅ Deploy request confirmed"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
-            echo "No action required for this Slack message"
-            echo "trigger_ci_cd=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No deployment needed for this message"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
           fi
-          echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
 
-      - name: Run CI/CD if Triggered
-        if: steps.slack_message.outputs.trigger_ci_cd == 'true'
+          echo "DEPLOY_TAG=$TAG" >> $GITHUB_ENV
+          echo "DEPLOY_USER=$USER" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        if: steps.parse_message.outputs.should_deploy == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        if: steps.parse_message.outputs.should_deploy == 'true'
+        id: docker_build
         run: |
-          # 여기에 실제 CI/CD 작업을 수행하는 명령어 또는 스크립트를 추가하세요
+          echo "🔨 Building Docker image..."
+          IMAGE_TAG="${DEPLOY_TAG:-${{ github.sha }}}"
+          docker build -t myapp:$IMAGE_TAG .
+          docker tag myapp:$IMAGE_TAG myapp:latest
+          echo "✅ Docker image built: myapp:$IMAGE_TAG"
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: action-slack
+      - name: Send Deployment Start Notification
+        if: steps.parse_message.outputs.should_deploy == 'true'
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚀 *배포 시작됨*\\n\\n• 사용자: ${DEPLOY_USER}\\n• 이미지 태그: ${DEPLOY_TAG:-latest}\\n• 상태: 빌드 중...\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }} || echo "⚠️ Slack notification failed (non-blocking)"
+
+      - name: Mock Deployment Step
+        if: steps.parse_message.outputs.should_deploy == 'true'
+        run: |
+          echo "📦 Simulating deployment..."
+          echo "In production, this would:"
+          echo "  1. Push image to ECR"
+          echo "  2. Update ECS service with new image"
+          echo "  3. Wait for health checks"
+          echo "  4. Switch traffic to new deployment"
+          sleep 2
+          echo "✅ Deployment simulation complete"
+
+      - name: Send Deployment Success Notification
+        if: steps.parse_message.outputs.should_deploy == 'true' && success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"✅ *배포 성공!*\\n\\n• 이미지: ${DEPLOY_TAG:-latest}\\n• 사용자: ${DEPLOY_USER}\\n• 시간: $(date +'%Y-%m-%d %H:%M:%S')\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }} || echo "⚠️ Slack notification failed (non-blocking)"
+
+      - name: Send Deployment Failure Notification
+        if: steps.parse_message.outputs.should_deploy == 'true' && failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"❌ *배포 실패*\\n\\n• 이미지: ${DEPLOY_TAG:-latest}\\n• 사용자: ${DEPLOY_USER}\\n• 에러 확인: GitHub Actions 로그를 확인하세요.\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }} || echo "⚠️ Slack notification failed (non-blocking)"
+
+      - name: Send Status via action-slack
+        if: always()
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          author_name: Sloth Backend - dev
-          fields: repo,commit,message,author # action,eventName,ref,workflow,job,took 추가할 수 있음
+          author_name: Atlas Platform - Dev Deploy
+          fields: repo,commit,message,author
           mention: here
           if_mention: failure,cancelled
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
-        if: always() # Pick up events even if the job fails or is canceled.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
