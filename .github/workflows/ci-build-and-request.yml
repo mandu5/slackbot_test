@@ -1,0 +1,39 @@
+	- name: Send Slack Approval Request
+	  id: slack
+	  uses: slackapi/slack-github-actions@v1.24.0
+	  with:
+	    channel-id: 'C12345678' # 우리 팀 슬랙 채널 ID
+	    # "Block Kit"라는 JSON 형식을 사용해 버튼을 만듭니다.
+	    payload: |
+	      {
+	        "blocks": [
+	          {
+	            "type": "section",
+	            "text": {
+	              "type": "mrkdwn",
+	              "text": "v${{ github.sha_short }} 배포 준비 완료. Prod 배포를 승인하시겠습니까?"
+	            }
+	          },
+	          {
+	            "type": "actions",
+	            "elements": [
+	              {
+	                "type": "button",
+	                "text": { "type": "plain_text", "text": "✅ Yes, Deploy!" },
+	                "style": "primary",
+	                "action_id": "approve_deployment",
+	                // "value"에 ECR 이미지 태그(commit sha)를 숨겨서 보냅니다.
+	                "value": "${{ github.sha }}" 
+	              },
+	              {
+	                "type": "button",
+	                "text": { "type": "plain_text", "text": "⛔️ Cancel" },
+	                "style": "danger",
+	                "action_id": "reject_deployment"
+	              }
+	            ]
+	          }
+	        ]
+	      }
+	  env:
+	    SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
