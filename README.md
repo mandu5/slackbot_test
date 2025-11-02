@@ -102,7 +102,11 @@ curl -X POST -H 'Content-type: application/json' \
 1. Slack 채널 열기
 2. 채널 정보 (오른쪽 상단 ⓘ) → 하단 "Integrations" → "Channel ID" 확인
 
-### 3. Slackbot 로컬 실행
+### 3. Slackbot 실행 (로컬 테스트 또는 서버 배포)
+
+**중요**: Slackbot은 **항상 실행 중**이어야 Slack 메시지를 받을 수 있습니다.
+
+#### 3-1. 로컬 테스트 (개발용)
 
 ```bash
 cd docker_slack_file
@@ -121,7 +125,11 @@ pip install slack_bolt requests
 python slack.py
 ```
 
-### 4. Docker로 Slackbot 실행
+#### 3-2. 프로덕션 배포 (서버에 Docker로 실행)
+
+**프로덕션 환경에서는 서버에 배포해야 합니다.** 자세한 배포 방법은 [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)를 참고하세요.
+
+### 4. Docker로 Slackbot 실행 (서버 배포용)
 
 ```bash
 cd docker_slack_file
@@ -129,8 +137,9 @@ cd docker_slack_file
 # Docker 이미지 빌드
 docker build -t slackbot .
 
-# Docker 컨테이너 실행
+# Docker 컨테이너 실행 (백그라운드, 자동 재시작)
 docker run -d \
+  --restart always \
   -e SLACK_BOT_TOKEN="xoxb-your-bot-token" \
   -e SLACK_APP_TOKEN="xapp-your-app-token" \
   -e GITHUB_PERSONAL_ACCESS_TOKEN="ghp_your-github-token" \
@@ -138,7 +147,15 @@ docker run -d \
   -e GITHUB_REPO="slackbot_test" \
   --name slackbot \
   slackbot
+
+# 로그 확인
+docker logs -f slackbot
 ```
+
+**배포 옵션**:
+- ✅ **클라우드 서버** (EC2, GCP, Azure): 위의 Docker 명령어 사용
+- ✅ **PaaS** (Heroku, Railway, Render): 각 플랫폼의 배포 가이드 참고
+- ✅ **자세한 배포 가이드**: [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) 참고
 
 ## 🚀 사용 방법
 
