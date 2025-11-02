@@ -67,33 +67,8 @@ jobs:
             --data "{\"text\":\"✅ *v${DEPLOY_IMAGE_TAG_SHORT} Production 배포 성공!* 🎉\\n\\n• 이미지 태그: ${DEPLOY_IMAGE_TAG}\\n• 사용자: ${DEPLOY_USER}\\n• 시간: $(date +'%Y-%m-%d %H:%M:%S')\\n• 상태: 모든 헬스 체크 통과\\n\\n💡 *참고:* 실제 프로덕션에서는 Grafana 대시보드에서 모니터링할 수 있습니다.\"}" \
             ${{ secrets.SLACK_WEBHOOK_URL }} || echo "⚠️ Slack notification failed (non-blocking)"
 
-      - name: Send Final Success Notification (Bot API)
-        if: success() && env.SLACK_BOT_TOKEN != ''
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        uses: slackapi/slack-github-actions@v1.24.0
-        with:
-          channel-id: ${{ secrets.SLACK_CHANNEL_ID || 'C12345678' }}
-          payload: |
-            {
-              "text": "🚀 v${DEPLOY_IMAGE_TAG_SHORT} 배포 성공! 🎉",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "✅ *v${DEPLOY_IMAGE_TAG_SHORT} Production 배포 성공!* 🎉\n\n• 이미지 태그: ${DEPLOY_IMAGE_TAG}\n• 사용자: ${DEPLOY_USER}\n• 모든 헬스 체크 통과"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "💡 *참고:* 실제 프로덕션에서는 Grafana 대시보드에서 모니터링할 수 있습니다."
-                  }
-                }
-              ]
-            }
+      # Bot API 알림은 slackapi/slack-github-actions 액션이 존재하지 않아 제거됨
+      # 웹훅 알림이 이미 충분히 작동하므로 Bot API는 추후 필요시 추가 예정
 
       - name: Send Failure Notification
         if: failure()
