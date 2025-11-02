@@ -13,12 +13,17 @@ jobs:
         id: slack_message
         run: |
           MESSAGE="${{ github.event.client_payload.message }}"
-          if [[ "$MESSAGE" == "CRM develop deploy" ]]; then
-            echo "Triggering Slack CI/CD for CRM 개발서버"
-            echo "::set-output name=trigger_ci_cd::true"
+          ORIGINAL_MESSAGE="${{ github.event.client_payload.original_message }}"
+          echo "Received message: $MESSAGE"
+          echo "Original message: $ORIGINAL_MESSAGE"
+
+          # 배포 키워드 체크 (유연한 매칭)
+          if [[ "$MESSAGE" == *"배포"* ]] || [[ "$MESSAGE" == *"deploy"* ]] || [[ "$MESSAGE" == "CRM develop deploy" ]]; then
+            echo "Triggering Slack CI/CD for 자동 배포"
+            echo "trigger_ci_cd=true" >> $GITHUB_OUTPUT
           else
             echo "No action required for this Slack message"
-            echo "::set-output name=trigger_ci_cd::false"
+            echo "trigger_ci_cd=false" >> $GITHUB_OUTPUT
           fi
           echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
 

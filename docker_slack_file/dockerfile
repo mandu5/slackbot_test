@@ -23,4 +23,4 @@ COPY . /var/www/html/
 RUN pip install flask slack_bolt config requests
 
 # 컨테이너 실행 명령어 설정
-CMD ["python", "slack.py"]
+CMD ["python", "slcak.py"]
