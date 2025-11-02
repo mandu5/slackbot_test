@@ -1,21 +1,33 @@
-  - name: Run Terraform Apply
-    run: |
-      # "value"로 전달받은 이미지 태그를 변수로 사용
-      terraform apply -var="docker_image_tag=${{ github.event.client_payload.image_tag }}" -auto-approve
-  
-  - name: Send Final Slack Notification
-    if: success()
-    uses: slackapi/slack-github-actions@v1.24.0
-    with:
-      channel-id: 'C12345678'
-      payload: |
-        {
-          "text": "🚀 v${{ github.event.client_payload.image_tag_short }} 배포 성공! 🎉",
-          "blocks": [
-            { "type": "section", "text": { "type": "mrkdwn", "text": "🚀 *v${{ github.event.client_payload.image_tag_short }} 배포 성공!* 🎉" } },
-            { "type": "section", "text": { "type": "mrkdwn", "text": "Grafana 대시보드: <http://our-grafana-url.com|여기서 확인>" } },
-            { "type: "image", "image_url": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjEx.../giphy.gif", "alt_text": "Success GIF" }
-          ]
-        }
-    env:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    		
+name: Deploy on Approval
+
+on:
+  repository_dispatch:
+    types: [deploy-approval]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Terraform Apply
+        run: |
+          # "value"로 전달받은 이미지 태그를 변수로 사용
+          terraform apply -var="docker_image_tag=${{ github.event.client_payload.image_tag }}" -auto-approve
+
+      - name: Send Final Slack Notification
+        if: success()
+        uses: slackapi/slack-github-actions@v1.24.0
+        with:
+          channel-id: "C12345678"
+          payload: |
+            {
+              "text": "🚀 v${{ github.event.client_payload.image_tag_short }} 배포 성공! 🎉",
+              "blocks": [
+                { "type": "section", "text": { "type": "mrkdwn", "text": "🚀 *v${{ github.event.client_payload.image_tag_short }} 배포 성공!* 🎉" } },
+                { "type": "section", "text": { "type": "mrkdwn", "text": "Grafana 대시보드: <http://our-grafana-url.com|여기서 확인>" } },
+                { "type": "image", "image_url": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjEx.../giphy.gif", "alt_text": "Success GIF" }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
